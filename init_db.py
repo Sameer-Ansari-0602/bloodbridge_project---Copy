@@ -1,4 +1,5 @@
 import os
+import mysql.connector
 
 db_config = {
     'host': os.environ.get("MYSQL_HOST", "localhost"),
