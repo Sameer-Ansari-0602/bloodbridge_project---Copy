@@ -6,14 +6,17 @@ import os
 
 try:
     conn = mysql.connector.connect(
-        host=os.environ["MYSQL_HOST"],
-        port=int(os.environ["MYSQL_PORT"]),
-        user=os.environ["MYSQL_USER"],
-        password=os.environ["MYSQL_PASSWORD"],
-        database=os.environ["MYSQL_DATABASE"]
+        host=os.environ.get["MYSQL_HOST"],
+        port=int(os.environ.get["MYSQL_PORT"]),
+        user=os.environ.get["MYSQL_USER"],
+        password=os.environ.get["MYSQL_PASSWORD"],
+        database=os.environ.get["MYSQL_DATABASE"]
     )
+    print("MySQL connection successful")
+
 except Exception as e:
     print("MySQL connection failed:", e)
+
 
 app = Flask(__name__)
 app.secret_key = 'bloodbridge_secure_key_999'
