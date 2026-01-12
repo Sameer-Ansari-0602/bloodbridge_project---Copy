@@ -2,6 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import mysql.connector
 from flask_bcrypt import Bcrypt
 from datetime import datetime
+import os
+
+try:
+    conn = mysql.connector.connect(
+        host=os.environ["MYSQL_HOST"],
+        port=int(os.environ["MYSQL_PORT"]),
+        user=os.environ["MYSQL_USER"],
+        password=os.environ["MYSQL_PASSWORD"],
+        database=os.environ["MYSQL_DATABASE"]
+    )
+except Exception as e:
+    print("MySQL connection failed:", e)
 
 app = Flask(__name__)
 app.secret_key = 'bloodbridge_secure_key_999'
