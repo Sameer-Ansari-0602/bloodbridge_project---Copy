@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloodBridge | Save Lives</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #BE123C;
+            --primary-light: #FFF1F2;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #1E293B;
+            /* Professional Medical Background Image */
+            background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.95)),
+            url('{{ url_for("static", filename="images/background.png") }}');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism Navigation */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Premium Card Styling */
+        .card-premium {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-premium:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(190, 18, 60, 0.15);
+            border-color: #FECDD3;
+        }
+
+        /* Gradient Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #E11D48 0%, #BE123C 100%);
+            color: white;
+            border-radius: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(190, 18, 60, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(190, 18, 60, 0.4);
+        }
+
+        /* Chat UI Enhancements */
+        .chat-window {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 380px;
+            height: 600px;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(120%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .chat-window.open {
+            transform: translateY(0);
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #F8FAFC;
+            background-image: radial-gradient(#E2E8F0 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .msg-received {
+            background: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            color: #334155;
+        }
+
+        .msg-sent {
+            background: #E11D48;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="pb-20 text-slate-800">
+
+    <!-- Navigation -->
+    <nav class="glass-nav fixed w-full z-50 h-20 flex items-center shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 w-full flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='/'">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-rose-500 to-rose-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-200">
+                    <i class="fas fa-heartbeat text-xl"></i>
+                </div>
+                <span class="text-2xl font-extrabold tracking-tight">Blood<span
+                        class="text-rose-600">Bridge</span></span>
+            </div>
+
+            <div class="hidden md:flex items-center gap-8 font-semibold text-slate-600 text-sm">
+                <a href="/" class="hover:text-rose-600 transition flex items-center gap-2"><i
+                        class="fas fa-home opacity-50"></i> Home</a>
+                <a href="/search" class="hover:text-rose-600 transition flex items-center gap-2"><i
+                        class="fas fa-search opacity-50"></i> Find Donors</a>
+
+                {% if session['user_id'] %}
+                <div class="flex items-center gap-4 border-l pl-6 border-slate-300/50">
+                    <button onclick="openInbox()"
+                        class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-md transition relative">
+                        <i class="fas fa-comment-alt"></i>
+                        <span
+                            class="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <a href="/dashboard"
+                        class="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-full hover:shadow-md hover:border-rose-200 transition group">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-slate-700 font-bold group-hover:text-rose-600">{{
+                            session['user_name'].split()[0] }}</span>
+                    </a>
+                    <a href="/logout"
+                        class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition"><i
+                            class="fas fa-sign-out-alt"></i></a>
+                </div>
+                {% else %}
+                <div class="flex gap-4">
+                    <button onclick="openModal('loginModal')"
+                        class="font-bold hover:text-rose-600 px-2 transition">Login</button>
+                    <button onclick="openModal('registerModal')"
+                        class="btn-primary px-6 py-2.5 font-bold text-sm shadow-lg shadow-rose-200">Join
+                        Network</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-32 max-w-7xl mx-auto px-6">
+
+        {% if page == 'search' %}
+        <div class="mb-12 flex flex-col md:flex-row justify-between items-end gap-8 animate-fade-in-up">
+            <div>
+                <h1 class="text-4xl font-black text-slate-900 mb-2">Find <span class="text-rose-600">Heroes</span></h1>
+                <p class="text-slate-500 text-lg font-medium">Connect with verified donors in seconds.</p>
+            </div>
+            <form action="/search" method="GET"
+                class="flex gap-4 bg-white p-2 rounded-2xl shadow-lg border border-slate-100 items-center">
+                <select name="blood_group"
+                    class="bg-transparent pl-4 pr-8 py-3 font-bold text-slate-700 outline-none cursor-pointer">
+                    <option value="">Group</option>
+                    <option>A+</option>
+                    <option>O+</option>
+                    <option>B+</option>
+                    <option>AB+</option>
+                </select>
+                <div class="w-px h-8 bg-slate-200"></div>
+                <input type="text" name="city" placeholder="City or Zip..."
+                    class="pl-4 pr-4 py-3 outline-none font-medium w-56 text-slate-700 bg-transparent">
+                <button type="submit"
+                    class="btn-primary w-12 h-12 rounded-xl flex items-center justify-center shadow-md"><i
+                        class="fas fa-search"></i></button>
+            </form>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
+            {% if donors %}
+            {% for donor in donors %}
+            <div class="card-premium p-6 flex flex-col h-full group">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-16 h-16 bg-gradient-to-br from-rose-50 to-white text-rose-600 rounded-2xl flex items-center justify-center font-black text-2xl border border-rose-100 shadow-sm group-hover:scale-110 transition duration-300">
+                            {{ donor.blood_group }}
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900">{{ donor.full_name }}</h3>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <p class="text-emerald-600 text-xs font-bold uppercase tracking-wider">Available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4 mb-8 flex-1">
+                    <div
+                        class="flex items-center gap-3 text-slate-600 bg-slate-50/80 p-3 rounded-xl border border-slate-100/50">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                            <i class="fas fa-map-marker-alt text-xs"></i>
+                        </div>
+                        <span class="text-sm font-bold">{{ donor.city }}</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 text-slate-600 bg-slate-50/80 p-3 rounded-xl border border-slate-100/50">
+                        <div
+                            class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-500 shadow-sm">
+                            <i class="fas fa-envelope text-xs"></i>
+                        </div>
+                        <span class="text-sm font-medium truncate">{{ donor.email }}</span>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-auto">
+                    <a href="tel:{{ donor.phone }}"
+                        class="flex-1 btn-primary py-3.5 flex items-center justify-center gap-2 font-bold text-sm shadow-md hover:shadow-xl">
+                        <i class="fas fa-phone-alt"></i> Call
+                    </a>
+                    {% if session['user_id'] %}
+                    <button onclick="openChat('{{ donor.id }}', '{{ donor.full_name }}')"
+                        class="flex-1 bg-white border border-slate-200 text-slate-700 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-comment-alt text-slate-400"></i> Chat
+                    </button>
+                    {% else %}
+                    <button onclick="openModal('loginModal')"
+                        class="flex-1 bg-white border border-slate-200 text-slate-700 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-50">Login</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div
+                class="col-span-full py-24 text-center bg-white/80 backdrop-blur-sm rounded-[30px] border border-dashed border-slate-300">
+                <div
+                    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 text-5xl">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900">No Donors Found</h3>
+                <p class="text-slate-500 mt-2 max-w-md mx-auto">We couldn't find a match. Consider broadcasting an
+                    emergency request below.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% elif page == 'dashboard' %}
+        <!-- Dashboard UI -->
+        <div class="grid lg:grid-cols-12 gap-8 mb-20">
+            <div class="lg:col-span-4 space-y-6">
+                <div class="card-premium p-10 text-center sticky top-28">
+                    <div
+                        class="w-32 h-32 bg-gradient-to-br from-rose-100 to-rose-50 rounded-full mx-auto flex items-center justify-center text-rose-600 text-5xl mb-6 shadow-inner border-4 border-white">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2 class="text-3xl font-black text-slate-900 mb-1">{{ user.full_name }}</h2>
+                    <p class="text-slate-500 mb-8 font-medium flex items-center justify-center gap-2">
+                        <i class="fas fa-map-pin text-rose-500"></i> {{ user.city }}
+                    </p>
+
+                    <div class="flex flex-col gap-4">
+                        <form action="/toggle-availability" method="POST">
+                            <button
+                                class="w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-3 transition-all shadow-sm {{ 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' if user.is_available else 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200' }}">
+                                <span class="relative flex h-3 w-3">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 {{ 'bg-emerald-400' if user.is_available else 'hidden' }}"></span>
+                                    <span
+                                        class="relative inline-flex rounded-full h-3 w-3 {{ 'bg-emerald-500' if user.is_available else 'bg-slate-400' }}"></span>
+                                </span>
+                                {{ 'Status: Available' if user.is_available else 'Status: Offline' }}
+                            </button>
+                        </form>
+                        <button onclick="openInbox()"
+                            class="w-full py-4 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md transition flex items-center justify-center gap-3 group">
+                            <i class="fas fa-inbox text-lg group-hover:text-rose-600 transition"></i> Check Inbox
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Stats Row -->
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="card-premium p-8 text-center hover:scale-[1.02] transition duration-300">
+                        <div class="text-4xl font-black text-rose-600 mb-2">{{ user.donations_made|default(0) }}</div>
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">Donations</p>
+                    </div>
+                    <div class="card-premium p-8 text-center hover:scale-[1.02] transition duration-300">
+                        <div class="text-4xl font-black text-blue-600 mb-2">{{ req_count|default(0) }}</div>
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">Requests</p>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="card-premium p-10">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xl font-bold text-slate-900 flex items-center gap-3">
+                            <span
+                                class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"><i
+                                    class="fas fa-history"></i></span>
+                            Recent Activity
+                        </h3>
+                    </div>
+                    {% if my_requests %}
+                    <div class="space-y-4">
+                        {% for req in my_requests %}
+                        <div
+                            class="flex items-center justify-between p-5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-rose-200 transition group">
+                            <div class="flex items-center gap-5">
+                                <div
+                                    class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center font-black text-lg text-rose-600 border border-slate-100">
+                                    {{ req.required_blood_group }}</div>
+                                <div>
+                                    <p class="font-bold text-slate-900">{{ req.hospital_name }}</p>
+                                    <p class="text-xs text-slate-500 font-bold mt-1">{{ req.created_at }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span
+                                    class="text-[10px] font-black px-4 py-2 bg-white rounded-full border border-slate-100 text-slate-500 uppercase tracking-wider group-hover:bg-rose-50 group-hover:text-rose-600 group-hover:border-rose-100 transition">{{
+                                    req.status }}</span>
+                                <form action="{{ url_for('delete_request', req_id=req.id) }}" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this request?');"
+                                    class="ml-4">
+                                    <button type="submit"
+                                        class="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-600 hover:text-white flex items-center justify-center transition text-slate-400">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 opacity-50">
+                        <i class="fas fa-clipboard-list text-4xl text-slate-300 mb-4"></i>
+                        <p class="font-bold text-slate-400">No requests yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Landing Page -->
+        <div class="py-12 max-w-7xl mx-auto">
+            <div class="flex flex-col-reverse lg:flex-row items-center gap-12 mb-20">
+                <!-- Text Content -->
+                <div class="flex-1 text-center lg:text-left">
+                    <span
+                        class="inline-block py-2 px-4 rounded-full bg-rose-50 text-rose-600 text-xs font-black uppercase tracking-widest mb-6 border border-rose-100 animate-pulse">
+                        <i class="fas fa-circle text-[8px] mr-2"></i>Live Healthcare Network
+                    </span>
+                    <h1 class="text-5xl lg:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-[1.1]">
+                        Every Drop <br>
+                        <span class="text-rose-600">Starts a Story.</span>
+                    </h1>
+                    <p class="text-xl text-slate-500 mb-10 font-medium leading-relaxed max-w-lg mx-auto lg:mx-0">
+                        Join the world's most advanced decentralized blood donation network. Connect instantly, save
+                        lives, and track your impact.
+                    </p>
+                    <div class="flex flex-wrap justify-center lg:justify-start gap-4">
+                        <a href="/search"
+                            class="btn-primary px-8 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-rose-200 hover:shadow-2xl hover:-translate-y-1 transition flex items-center gap-3">
+                            <i class="fas fa-search"></i> Find Donor
+                        </a>
+                        <button onclick="openModal('registerModal')"
+                            class="bg-white border-2 border-slate-100 text-slate-700 px-8 py-4 rounded-2xl font-bold text-lg hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition">
+                            Join Mission
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hero Image -->
+                <div class="flex-1 relative w-full max-w-lg lg:max-w-xl">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-tr from-rose-100 to-transparent rounded-full blur-3xl opacity-50">
+                    </div>
+                    <img src="{{ url_for('static', filename='images/hero.png') }}" alt="Blood Donation Community"
+                        class="relative z-10 w-full drop-shadow-2xl rounded-3xl transform hover:scale-[1.02] transition duration-500">
+                </div>
+            </div>
+
+            <!-- Platform Status Boxes (Refined) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center group hover:border-rose-200 transition duration-300">
+                    <div
+                        class="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 text-xl mb-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-900">{{ global_donors }}</h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Heroes Registered</p>
+                </div>
+
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center group hover:border-rose-200 transition duration-300">
+                    <div
+                        class="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 text-xl mb-3">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-rose-600">{{ global_saved }}</h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lives Saved</p>
+                </div>
+
+                <div
+                    class="bg-rose-600 p-6 rounded-2xl shadow-lg shadow-rose-200 flex flex-col items-center justify-center text-white transform hover:-translate-y-1 transition duration-300">
+                    <div
+                        class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white text-xl mb-3">
+                        <i class="fas fa-signal"></i>
+                    </div>
+                    <h3 class="text-3xl font-black">{{ global_users }}</h3>
+                    <p class="text-[10px] font-bold text-rose-100 uppercase tracking-widest">Active Users</p>
+                </div>
+
+                <div
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center group hover:border-rose-200 transition duration-300">
+                    <div
+                        class="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 text-xl mb-3">
+                        <i class="fas fa-city"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-900">24/7</h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Coverage</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Request Section -->
+        <div class="max-w-5xl mx-auto mb-28">
+            <div class="card-premium p-12 border-l-8 border-l-rose-600 relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-96 h-96 bg-rose-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 group-hover:bg-rose-100 transition duration-700">
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10">
+                    <div>
+                        <h3 class="text-3xl font-black text-slate-900 mb-2">Emergency Broadcast</h3>
+                        <p class="text-slate-500 text-lg">Notify all nearby registered donors instantly.</p>
+                    </div>
+                    <div
+                        class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm animate-pulse mt-4 md:mt-0">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                </div>
+
+                <form action="/post-request" method="POST" class="space-y-6 relative z-10">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Blood
+                                Group</label>
+                            <select name="blood_group"
+                                class="w-full bg-slate-50 p-5 rounded-2xl font-bold text-slate-700 border border-slate-200 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition appearance-none cursor-pointer">
+                                <option>A+</option>
+                                <option>A-</option>
+                                <option>B+</option>
+                                <option>B-</option>
+                                <option>AB+</option>
+                                <option>AB-</option>
+                                <option>O+</option>
+                                <option>O-</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold text-rose-500 uppercase tracking-widest ml-1">Urgency
+                                Level</label>
+                            <select name="urgency"
+                                class="w-full bg-rose-50 p-5 rounded-2xl font-bold text-rose-700 border border-rose-100 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition appearance-none cursor-pointer">
+                                <option value="Normal">Normal Priority</option>
+                                <option value="Urgent">Critical / Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Hospital
+                                Name</label>
+                            <input type="text" name="hospital" placeholder="e.g. City General"
+                                class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition"
+                                required>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Location /
+                                City</label>
+                            <input type="text" name="city" placeholder="e.g. New York"
+                                class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition"
+                                required>
+                        </div>
+                    </div>
+                    <button type="submit"
+                        class="w-full btn-primary py-5 font-bold rounded-2xl text-xl mt-6 shadow-xl shadow-rose-200 hover:shadow-2xl hover:scale-[1.01] transition-all">Broadcast
+                        Emergency Alert</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Live Feed -->
+        <div class="my-24">
+            <div class="flex items-end justify-between mb-12">
+                <div>
+                    <h2 class="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
+                        <span class="w-2 h-8 bg-rose-600 rounded-full"></span>
+                        Live Feed
+                    </h2>
+                    <p class="text-slate-500 mt-2 ml-5">Real-time emergency requests.</p>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                {% for req in urgent_requests %}
+                <div
+                    class="card-premium p-8 border-t-4 border-t-rose-600 hover:border-t-rose-500 group relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <span
+                            class="bg-rose-100 text-rose-700 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">Urgent</span>
+                        <span class="text-xs font-bold text-slate-400 flex items-center gap-1"><i
+                                class="far fa-clock"></i> {{ req.created_at.strftime('%H:%M') }}</span>
+                    </div>
+                    <div class="flex items-center gap-5 mb-8">
+                        <div
+                            class="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg">
+                            {{ req.required_blood_group }}</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-lg leading-tight">{{ req.hospital_name }}</h4>
+                            <p class="text-sm text-slate-500 mt-1 font-medium"><i
+                                    class="fas fa-map-pin text-rose-500 mr-1"></i> {{ req.city }}</p>
+                        </div>
+                    </div>
+                    <button onclick="openModal('loginModal')"
+                        class="w-full py-3.5 bg-rose-50 text-rose-700 font-bold rounded-xl text-sm hover:bg-rose-600 hover:text-white transition group-hover:shadow-lg">I
+                        Can Help</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        </div>
+        </div>
+    </main>
+
+    <!-- Professional Footer -->
+    <footer class="bg-slate-900 text-white mt-12 py-16 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-600 via-purple-600 to-rose-600"></div>
+        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12 relative z-10">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <span class="text-2xl font-black tracking-tight">Blood<span
+                            class="text-rose-500">Bridge</span></span>
+                </div>
+                <p class="text-slate-400 font-medium leading-relaxed max-w-sm">
+                    Connecting heroes with those in need. A professional, decentralized network saving lives through
+                    technology and compassion.
+                </p>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="text-lg font-bold mb-6 text-rose-500 uppercase tracking-widest text-xs">Platform Stats</h4>
+                <ul class="space-y-4">
+                    <li class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-slate-400 font-medium">Registered Donors</span>
+                        <span class="font-bold text-white">{{ global_donors }}</span>
+                    </li>
+                    <li class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-slate-400 font-medium">Active Users</span>
+                        <span class="font-bold text-white">{{ global_users }}</span>
+                    </li>
+                    <li class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-slate-400 font-medium">Lives Impacted</span>
+                        <span class="font-bold text-emerald-400">{{ global_saved }}</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="col-span-1">
+                <h4 class="text-lg font-bold mb-6 text-rose-500 uppercase tracking-widest text-xs">Contact</h4>
+                <ul class="space-y-3 text-slate-400 font-medium">
+                    <li><i class="fas fa-envelope w-6 text-center"></i> help@bloodbridge.com</li>
+                    <li><i class="fas fa-phone w-6 text-center"></i> +1 (800) SAVE-LIFE</li>
+                    <li><i class="fas fa-map-marker-alt w-6 text-center"></i> New York, NY</li>
+                </ul>
+            </div>
+        </div>
+        <div
+            class="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-slate-800 text-center text-slate-500 font-bold text-sm">
+            &copy; 2024 BloodBridge Network. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Chat Modal -->
+    <div id="chatWindow" class="chat-window">
+        <div class="bg-white p-5 flex justify-between items-center border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold shadow-sm">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-slate-800 block text-sm" id="chatTitle">Chat</span>
+                    <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">Online</span>
+                </div>
+            </div>
+            <button onclick="closeChat()"
+                class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-600 transition"><i
+                    class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="p-4 bg-white border-t border-slate-100 flex gap-2">
+            <input type="text" id="chatInput" placeholder="Type message..."
+                class="flex-1 bg-slate-50 border border-slate-200 px-5 py-3 rounded-full outline-none text-sm font-medium focus:bg-white focus:border-rose-300 transition">
+            <button onclick="sendMessage()"
+                class="w-11 h-11 bg-rose-600 text-white rounded-full flex items-center justify-center hover:bg-rose-700 hover:shadow-lg transition"><i
+                    class="fas fa-paper-plane text-sm"></i></button>
+        </div>
+    </div>
+
+    <!-- Inbox Modal -->
+    <div id="conversationsModal"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 transition-all">
+        <div
+            class="bg-white w-full max-w-md rounded-[32px] p-8 relative shadow-2xl h-[600px] flex flex-col border border-white/20">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-black text-slate-900">Messages</h3>
+                <button onclick="document.getElementById('conversationsModal').classList.add('hidden')"
+                    class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition"><i
+                        class="fas fa-times text-lg"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="inboxList">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modals -->
+    <div id="modalOverlay"
+        class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div id="loginModal" class="hidden bg-white w-full max-w-md rounded-[32px] p-10 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+            <div class="text-center mb-8">
+                <div
+                    class="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h2 class="text-3xl font-black text-slate-900">Welcome Back</h2>
+            </div>
+            <form action="/login" method="POST" class="space-y-5">
+                <input type="email" name="email" placeholder="Email Address"
+                    class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition"
+                    required>
+                <input type="password" name="password" placeholder="Password"
+                    class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 transition"
+                    required>
+                <button class="w-full btn-primary py-5 rounded-2xl font-bold text-lg shadow-lg mt-2">Access
+                    Account</button>
+            </form>
+        </div>
+        <div id="registerModal" class="hidden bg-white w-full max-w-lg rounded-[32px] p-10 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+            <h2 class="text-3xl font-black text-slate-900 mb-8 text-center">Join Network</h2>
+            <form action="/register" method="POST" class="grid grid-cols-2 gap-4">
+                <input type="text" name="name" placeholder="Full Name"
+                    class="col-span-2 bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <input type="email" name="email" placeholder="Email"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <input type="password" name="password" placeholder="Password"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <select name="blood_group"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition">
+                    <option>A+</option>
+                    <option>O+</option>
+                    <option>B+</option>
+                    <option>AB+</option>
+                </select>
+                <select name="role"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition">
+                    <option value="donor">Donor</option>
+                    <option value="requester">Requester</option>
+                </select>
+                <input type="text" name="city" placeholder="City"
+                    class="col-span-2 bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <input type="text" name="phone" placeholder="Phone"
+                    class="col-span-2 bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <button class="col-span-2 btn-primary py-5 rounded-2xl font-bold text-lg mt-4 shadow-lg">Create
+                    Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentPartnerId = null;
+        let pollingInterval = null;
+        // Correct session variable handling for JS
+        const currentUserId = parseInt("{{ session.get('user_id', 0) }}");
+
+        function openModal(id) {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.querySelectorAll('#modalOverlay > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+
+        function openChat(partnerId, partnerName) {
+            if (!currentUserId) {
+                openModal('loginModal');
+                return;
+            }
+            currentPartnerId = partnerId;
+            document.getElementById('chatWindow').classList.add('open');
+            document.getElementById('chatTitle').innerText = partnerName;
+            document.getElementById('conversationsModal').classList.add('hidden');
+            loadMessages();
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(loadMessages, 3000);
+        }
+
+        function closeChat() {
+            document.getElementById('chatWindow').classList.remove('open');
+            if (pollingInterval) clearInterval(pollingInterval);
+            currentPartnerId = null;
+        }
+
+        async function loadMessages() {
+            if (!currentPartnerId) return;
+            try {
+                const res = await fetch(`/api/get-messages/${currentPartnerId}`);
+                if (!res.ok) return;
+                const messages = await res.json();
+                const body = document.getElementById('chatBody');
+                body.innerHTML = '';
+
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = `message ${msg.sender_id == currentUserId ? 'msg-sent' : 'msg-received'}`;
+                    div.innerText = msg.content;
+                    body.appendChild(div);
+                });
+                body.scrollTop = body.scrollHeight;
+            } catch (err) { console.error(err); }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const content = input.value.trim();
+            if (!content || !currentPartnerId) return;
+
+            try {
+                const res = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ receiver_id: currentPartnerId, content: content })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    loadMessages();
+                } else {
+                    alert("Failed to send message.");
+                }
+            } catch (err) { alert("Connection Error"); }
+        }
+
+        function openInbox() {
+            document.getElementById('conversationsModal').classList.remove('hidden');
+            loadInbox();
+        }
+
+        async function loadInbox() {
+            if (!currentUserId) return;
+            const list = document.getElementById('inboxList');
+            list.innerHTML = '<div class="text-center py-10 text-slate-400">Loading...</div>';
+
+            try {
+                const res = await fetch('/api/my-conversations');
+                const users = await res.json();
+
+                if (!users.length) {
+                    list.innerHTML = '<div class="text-center py-10 text-slate-400">No conversations found.</div>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                if (users.length === 0) {
+                    list.innerHTML = '<p class="text-center text-slate-400 py-10 font-bold">No conversations yet.</p>';
+                }
+                users.forEach(u => {
+                    const item = document.createElement('div');
+                    item.className = 'p-4 bg-slate-50/50 rounded-2xl cursor-pointer hover:bg-rose-50 hover:border-rose-100 border border-slate-100 flex items-center gap-4 transition group';
+                    item.innerHTML = `
+                        <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-rose-500 font-bold shadow-sm group-hover:bg-rose-500 group-hover:text-white transition relative">
+                            <i class="fas fa-user"></i>
+                            ${u.is_available ? `<span class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></span>` : ''}
+                        </div>
+                        <div class="flex-1" onclick="openChat('${u.id}', '${u.full_name}')">
+                            <p class="font-bold text-slate-800 text-lg">${u.full_name}</p>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wide group-hover:text-rose-500">${u.role}</p>
+                        </div>
+                        <button onclick="deleteChat(event, '${u.id}')" class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 border border-slate-100 transition z-10">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteChat(e, partnerId) {
+            e.stopPropagation();
+            if (!confirm('Delete this conversation? This cannot be undone.')) return;
+
+            try {
+                const res = await fetch(`/api/delete-conversation/${partnerId}`, { method: 'POST' });
+                if (res.ok) {
+                    loadInbox();
+                } else {
+                    alert('Failed to delete chat');
+                }
+            } catch (err) { console.error(err); }
+        }
+    </script>
+</body>
+
+</html>
