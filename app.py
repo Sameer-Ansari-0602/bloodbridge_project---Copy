@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import mysql.connector
 from flask_bcrypt import Bcrypt
+from itsdangerous import URLSafeTimedSerializer
 from datetime import datetime
 import os
 
@@ -24,6 +25,7 @@ def get_db():
 app = Flask(__name__)
 app.secret_key = 'bloodbridge_secure_key_999'
 bcrypt = Bcrypt(app)
+serializer = URLSafeTimedSerializer(app.secret_key)
 
 # db_config = {
 #     'host': 'localhost',
@@ -121,7 +123,7 @@ def login():
 def register():
     name = request.form['name']
     email = request.form['email']
-    pw = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+    pw_raw = request.form['password']
     bg = request.form['blood_group']
     phone = request.form['phone']
     city = request.form['city']
@@ -131,15 +133,35 @@ def register():
         db = get_db()
         if not db:
             raise Exception("Database connection failed")
-        cursor = db.cursor()
+        cursor = db.cursor(dictionary=True)
+        
+        # Check for duplicate email
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            db.close()
+            # Render index with error variable to trigger popup
+            return render_template('index.html', register_error="User with this email already exists!", page='home')
+            
+        pw = bcrypt.generate_password_hash(pw_raw).decode('utf-8')
         cursor.execute("INSERT INTO users (full_name, email, password_hash, blood_group, phone, city, role) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
                        (name, email, pw, bg, phone, city, role))
         db.commit()
+        
+        # Auto-login
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
         db.close()
-        flash('Registration successful! Login now.', 'success')
+        
+        if user:
+            session['user_id'] = user['id']
+            session['user_name'] = user['full_name']
+            session['role'] = user['role']
+            flash('Registration successful!', 'success')
+            return redirect(url_for('dashboard'))
+            
     except Exception as e:
         print(f"Registration Error: {e}")
-        flash('Email already registered or database error.', 'danger')
+        flash('Database error during registration.', 'danger')
     
     return redirect(url_for('index'))
 
@@ -218,32 +240,114 @@ def toggle_availability():
         
     return redirect(url_for('dashboard'))
 
-@app.route('/delete-request/<int:req_id>', methods=['POST'])
-def delete_request(req_id):
+@app.route('/update-profile', methods=['POST'])
+def update_profile():
     if 'user_id' not in session: return redirect(url_for('index'))
     
     try:
         db = get_db()
-        if not db:
-            raise Exception("Database connection failed")
-        cursor = db.cursor(dictionary=True)
-        # Check ownership
-        cursor.execute("SELECT * FROM blood_requests WHERE id = %s", (req_id,))
-        req = cursor.fetchone()
+        if not db: raise Exception("Database connection failed")
+        cursor = db.cursor()
         
-        if req and req['requester_id'] == session['user_id']:
-            cursor.execute("DELETE FROM blood_requests WHERE id = %s", (req_id,))
-            db.commit()
-            flash('Request deleted successfully.', 'success')
-        else:
-            flash('Unauthorized to delete this request.', 'danger')
-            
+        sql = """
+            UPDATE users 
+            SET full_name = %s, phone = %s, city = %s, blood_group = %s
+            WHERE id = %s
+        """
+        cursor.execute(sql, (
+            request.form['name'],
+            request.form['phone'],
+            request.form['city'],
+            request.form['blood_group'],
+            session['user_id']
+        ))
+        db.commit()
         db.close()
+        
+        session['user_name'] = request.form['name']  # Update session
+        flash('Profile updated successfully!', 'success')
     except Exception as e:
-        print(f"Delete Error: {e}")
-        flash('Error deleting request.', 'danger')
+        print(f"Update Profile Error: {e}")
+        flash('Error updating profile.', 'danger')
         
     return redirect(url_for('dashboard'))
+
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session: return redirect(url_for('index'))
+    
+    try:
+        user_id = session['user_id']
+        db = get_db()
+        if not db: raise Exception("Database connection failed")
+        cursor = db.cursor()
+        
+        # Manual Cascade Delete
+        cursor.execute("DELETE FROM messages WHERE sender_id = %s OR receiver_id = %s", (user_id, user_id, user_id, user_id))
+        cursor.execute("DELETE FROM blood_requests WHERE requester_id = %s", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        
+        db.commit()
+        db.close()
+        
+        session.clear()
+        flash('Your account has been permanently deleted.', 'info')
+        return redirect(url_for('index'))
+    except Exception as e:
+        print(f"Delete Account Error: {e}")
+        flash('Error deleting account.', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    email = request.form['email']
+    try:
+        db = get_db()
+        if not db: raise Exception("Database connection failed")
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        db.close()
+        
+        if user:
+            token = serializer.dumps(email, salt='password-reset-salt')
+            link = url_for('reset_password', token=token, _external=True)
+            # MOCK EMAIL
+            flash(f'PASSWORD RESET LINK (Copy this): {link}', 'info') 
+        else:
+            flash('If that email exists, we sent a reset link.', 'info')
+            
+    except Exception as e:
+        print(f"Forgot Password Error: {e}")
+        flash('Error processing request.', 'danger')
+        
+    return redirect(url_for('index'))
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
+    except Exception:
+        flash('The password reset link is invalid or has expired.', 'danger')
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        password = request.form['password']
+        pw_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        
+        try:
+            db = get_db()
+            cursor = db.cursor()
+            cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (pw_hash, email))
+            db.commit()
+            db.close()
+            flash('Your password has been updated! You can now login.', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            print(f"Reset Password DB Error: {e}")
+            flash('Error resetting password.', 'danger')
+            
+    return render_template('index.html', reset_token=token, page='reset_password')
 
 
 

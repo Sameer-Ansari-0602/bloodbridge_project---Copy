@@ -173,6 +173,20 @@
                 </div>
                 {% endif %}
             </div>
+
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden flex items-center gap-4">
+                {% if session['user_id'] %}
+                <a href="/dashboard"
+                    class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold border border-slate-200">
+                    {{ session['user_name'][0] }}
+                </a>
+                {% else %}
+                <button onclick="openModal('loginModal')" class="text-rose-600 font-bold text-sm">Login</button>
+                <button onclick="openModal('registerModal')"
+                    class="btn-primary px-4 py-2 text-xs font-bold">Join</button>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
@@ -303,6 +317,18 @@
                             class="w-full py-4 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md transition flex items-center justify-center gap-3 group">
                             <i class="fas fa-inbox text-lg group-hover:text-rose-600 transition"></i> Check Inbox
                         </button>
+                        <button onclick="openModal('editProfileModal')"
+                            class="w-full py-4 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md transition flex items-center justify-center gap-3 group">
+                            <i class="fas fa-edit text-lg group-hover:text-blue-600 transition"></i> Edit Profile
+                        </button>
+
+                        <form action="/delete-account" method="POST"
+                            onsubmit="return confirm('WARNING: Are you sure you want to delete your account? This action CANNOT be undone. All your requests and messages will be deleted.');">
+                            <button
+                                class="w-full py-4 bg-rose-50 border border-rose-100 rounded-2xl font-bold text-sm text-rose-600 hover:bg-rose-100 hover:border-rose-200 hover:shadow-md transition flex items-center justify-center gap-3">
+                                <i class="fas fa-trash-alt text-lg"></i> Delete Account
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -683,6 +709,10 @@
                 <button class="w-full btn-primary py-5 rounded-2xl font-bold text-lg shadow-lg mt-2">Access
                     Account</button>
             </form>
+            <div class="mt-4 text-center">
+                <button onclick="closeModal(); openModal('forgotPasswordModal')"
+                    class="text-slate-400 font-bold hover:text-rose-600 text-sm">Forgot Password?</button>
+            </div>
         </div>
         <div id="registerModal" class="hidden bg-white w-full max-w-lg rounded-[32px] p-10 relative shadow-2xl">
             <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
@@ -720,13 +750,120 @@
                     Profile</button>
             </form>
         </div>
+
+        <!-- Forgot Password Modal -->
+        <div id="forgotPasswordModal" class="hidden bg-white w-full max-w-md rounded-[32px] p-10 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+            <div class="text-center mb-8">
+                <div
+                    class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h2 class="text-3xl font-black text-slate-900">Reset Password</h2>
+                <p class="text-slate-500 mt-2">Enter your email to receive a secure link.</p>
+            </div>
+            <form action="/forgot-password" method="POST" class="space-y-5">
+                <input type="email" name="email" placeholder="Email Address"
+                    class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition"
+                    required>
+                <button
+                    class="w-full bg-blue-600 text-white hover:bg-blue-700 transition py-5 rounded-2xl font-bold text-lg shadow-lg mt-2">Send
+                    Reset Link</button>
+            </form>
+        </div>
+
+        <!-- Reset Password Modal -->
+        <div id="resetPasswordModal" class="hidden bg-white w-full max-w-md rounded-[32px] p-10 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+            <div class="text-center mb-8">
+                <div
+                    class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2 class="text-3xl font-black text-slate-900">New Password</h2>
+            </div>
+            <form action="/reset-password/{{ reset_token }}" method="POST" class="space-y-5">
+                <input type="password" name="password" placeholder="New Password"
+                    class="w-full bg-slate-50 p-5 rounded-2xl font-bold border border-slate-200 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition"
+                    required>
+                <button
+                    class="w-full bg-emerald-600 text-white hover:bg-emerald-700 transition py-5 rounded-2xl font-bold text-lg shadow-lg mt-2">Update
+                    Password</button>
+            </form>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        {% if user %}
+        <div id="editProfileModal" class="hidden bg-white w-full max-w-lg rounded-[32px] p-10 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-300 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+            <h2 class="text-3xl font-black text-slate-900 mb-8 text-center">Edit Profile</h2>
+            <form action="/update-profile" method="POST" class="grid grid-cols-2 gap-4">
+                <input type="text" name="name" placeholder="Full Name" value="{{ user.full_name }}"
+                    class="col-span-2 bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <select name="blood_group"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition">
+                    <option value="{{ user.blood_group }}" selected>{{ user.blood_group }} (Current)</option>
+                    <option>A+</option>
+                    <option>O+</option>
+                    <option>B+</option>
+                    <option>AB+</option>
+                    <option>A-</option>
+                    <option>O-</option>
+                    <option>B-</option>
+                    <option>AB-</option>
+                </select>
+                <input type="text" name="phone" placeholder="Phone" value="{{ user.phone }}"
+                    class="bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <input type="text" name="city" placeholder="City" value="{{ user.city }}"
+                    class="col-span-2 bg-slate-50 p-4 rounded-xl font-bold border border-slate-200 outline-none focus:border-rose-500 transition"
+                    required>
+                <button class="col-span-2 btn-primary py-5 rounded-2xl font-bold text-lg mt-4 shadow-lg">Save
+                    Changes</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- App State Data -->
+    <div id="appState" data-user-id="{{ session.get('user_id', 0) }}"
+        data-register-error="{{ register_error if register_error else '' }}"
+        data-reset-token="{{ reset_token if reset_token else '' }}"
+        data-flash-messages='{{ get_flashed_messages(with_categories=true) | tojson | safe }}' class="hidden">
     </div>
 
     <script>
         let currentPartnerId = null;
         let pollingInterval = null;
-        // Correct session variable handling for JS
-        const currentUserId = parseInt("{{ session.get('user_id', 0) }}");
+
+        // Securely parse data from DOM attributes
+        const appState = document.getElementById('appState').dataset;
+        const currentUserId = parseInt(appState.userId);
+
+        // Handle Flash Messages
+        try {
+            const messages = JSON.parse(appState.flashMessages || '[]');
+            messages.forEach(([category, message]) => {
+                // Determine alert type based on category if needed, for now just alert
+                alert(message);
+            });
+        } catch (e) {
+            console.error("Error parsing flash messages", e);
+        }
+
+        // Handle Auto-open Modals
+        if (appState.registerError) {
+            alert(appState.registerError);
+            setTimeout(() => openModal('registerModal'), 500);
+        }
+
+        if (appState.resetToken) {
+            openModal('resetPasswordModal');
+        }
 
         function openModal(id) {
             document.getElementById('modalOverlay').classList.remove('hidden');
